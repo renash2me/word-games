@@ -1,0 +1,137 @@
+import random
+
+# All words must use only unaccented A-Z letters
+WORDS = [
+    # Natureza & Brasil
+    {"word": "BRASIL", "clue": "Maior país da América do Sul"},
+    {"word": "FLORESTA", "clue": "Grande extensão de árvores e vegetação"},
+    {"word": "OCEANO", "clue": "Grande massa de água salgada"},
+    {"word": "PLANETA", "clue": "Corpo celeste que orbita uma estrela"},
+    {"word": "MONTANHA", "clue": "Grande elevação natural do terreno"},
+    {"word": "ESTRELA", "clue": "Corpo celeste luminoso no céu noturno"},
+    {"word": "NUVEM", "clue": "Massa de vapor d'água no céu"},
+    {"word": "CHUVA", "clue": "Precipitação de água da atmosfera"},
+    {"word": "VENTO", "clue": "Movimento corrente do ar"},
+    {"word": "ARVORE", "clue": "Planta de grande porte com tronco lenhoso"},
+    {"word": "FLOR", "clue": "Parte ornamental e reprodutiva das plantas"},
+    {"word": "ANIMAL", "clue": "Ser vivo do reino animal"},
+    {"word": "PEIXE", "clue": "Vertebrado aquático com brânquias"},
+    {"word": "PASSARO", "clue": "Vertebrado com asas, penas e bico"},
+    {"word": "BORBOLETA", "clue": "Inseto com asas coloridas e delicadas"},
+    {"word": "ELEFANTE", "clue": "Maior mamífero terrestre do planeta"},
+    {"word": "CROCODILO", "clue": "Réptil aquático de grande porte"},
+    {"word": "GAVIAO", "clue": "Ave de rapina de grande porte"},
+    {"word": "TARTARUGA", "clue": "Réptil com casco e vida longa"},
+    {"word": "CORAL", "clue": "Estrutura calcária formada por animais marinhos"},
+    # Cultura & Cotidiano
+    {"word": "SAMBA", "clue": "Ritmo e dança típica brasileira"},
+    {"word": "FUTEBOL", "clue": "Esporte mais popular do Brasil"},
+    {"word": "CARNAVAL", "clue": "Festa popular celebrada antes da Quaresma"},
+    {"word": "CAPOEIRA", "clue": "Arte marcial brasileira com música e dança"},
+    {"word": "ESCOLA", "clue": "Instituição de ensino"},
+    {"word": "CIDADE", "clue": "Grande conjunto urbano habitado"},
+    {"word": "PORTA", "clue": "Abertura móvel para entrar em um ambiente"},
+    {"word": "JANELA", "clue": "Abertura na parede para luz e ventilação"},
+    {"word": "MESA", "clue": "Móvel com tampo horizontal para apoio"},
+    {"word": "CADEIRA", "clue": "Assento com encosto"},
+    {"word": "CANETA", "clue": "Instrumento para escrever com tinta"},
+    {"word": "PAPEL", "clue": "Material para escrever ou imprimir"},
+    {"word": "LIVRO", "clue": "Obra impressa com páginas encadernadas"},
+    {"word": "RELÓGIO", "clue": "Instrumento para medir o tempo"},
+    {"word": "RELOGIO", "clue": "Instrumento para medir o tempo"},
+    {"word": "ESPELHO", "clue": "Superfície que reflete a imagem"},
+    {"word": "JANEIRO", "clue": "Primeiro mês do ano"},
+    {"word": "VERAO", "clue": "Estação do ano mais quente"},
+    {"word": "INVERNO", "clue": "Estação do ano mais fria"},
+    # Tecnologia
+    {"word": "COMPUTADOR", "clue": "Máquina eletrônica de processar dados"},
+    {"word": "TELEFONE", "clue": "Aparelho de comunicação à distância"},
+    {"word": "INTERNET", "clue": "Rede mundial de computadores"},
+    {"word": "PROGRAMA", "clue": "Conjunto de instruções para computador"},
+    {"word": "SERVIDOR", "clue": "Computador que oferece serviços em rede"},
+    {"word": "TECLADO", "clue": "Dispositivo de entrada com teclas"},
+    {"word": "MONITOR", "clue": "Tela de exibição do computador"},
+    # Alimentação
+    {"word": "LARANJA", "clue": "Fruta cítrica de cor alaranjada"},
+    {"word": "BANANA", "clue": "Fruta tropical amarela e curvada"},
+    {"word": "ABACAXI", "clue": "Fruta tropical espinhosa com coroa"},
+    {"word": "FEIJAO", "clue": "Leguminosa base da culinária brasileira"},
+    {"word": "ARROZ", "clue": "Cereal que acompanha o feijão"},
+    {"word": "TOMATE", "clue": "Fruta vermelha usada como legume"},
+    {"word": "BATATA", "clue": "Tubérculo amplamente consumido no mundo"},
+    {"word": "CENOURA", "clue": "Raiz alaranjada rica em vitamina A"},
+    {"word": "MANDIOCA", "clue": "Raiz típica da culinária brasileira"},
+    {"word": "ACUCAR", "clue": "Substância doce extraída da cana"},
+    {"word": "CANELA", "clue": "Especiaria aromática em pó ou pau"},
+    {"word": "ALFACE", "clue": "Folha verde muito usada em saladas"},
+    # Ciências
+    {"word": "MATEMATICA", "clue": "Ciência dos números e das formas"},
+    {"word": "FISICA", "clue": "Ciência que estuda matéria e energia"},
+    {"word": "QUIMICA", "clue": "Ciência que estuda as substâncias e reações"},
+    {"word": "BIOLOGIA", "clue": "Ciência que estuda os seres vivos"},
+    {"word": "HISTORIA", "clue": "Estudo e registro do passado humano"},
+    {"word": "GEOGRAFIA", "clue": "Ciência que estuda o espaço terrestre"},
+    {"word": "FILOSOFIA", "clue": "Estudo das grandes questões da existência"},
+    {"word": "ECONOMIA", "clue": "Ciência que estuda produção e consumo"},
+    {"word": "ASTRONOMIA", "clue": "Ciência que estuda os corpos celestes"},
+    {"word": "GEOLOGIA", "clue": "Ciência que estuda a estrutura da Terra"},
+    # Esportes & Artes
+    {"word": "NATACAO", "clue": "Esporte praticado dentro da água"},
+    {"word": "ATLETISMO", "clue": "Modalidade com corridas, saltos e arremessos"},
+    {"word": "BASQUETE", "clue": "Esporte coletivo com cesta e bola laranja"},
+    {"word": "VOLEI", "clue": "Esporte com rede e seis jogadores por time"},
+    {"word": "MUSICA", "clue": "Arte de combinar sons harmonicamente"},
+    {"word": "PINTURA", "clue": "Arte de criar imagens com tinta"},
+    {"word": "ESCULTURA", "clue": "Arte de criar formas tridimensionais"},
+    {"word": "CINEMA", "clue": "Arte e indústria da produção de filmes"},
+    {"word": "TEATRO", "clue": "Arte das representações cênicas ao vivo"},
+    {"word": "DANCA", "clue": "Arte de se mover ao ritmo da música"},
+    {"word": "POESIA", "clue": "Forma literária com ritmo e expressão"},
+    {"word": "ROMANCE", "clue": "Longa obra narrativa em prosa"},
+    {"word": "DESENHO", "clue": "Arte de representar formas com linhas"},
+    # Transporte
+    {"word": "CARRO", "clue": "Veículo automotor de quatro rodas"},
+    {"word": "AVIAO", "clue": "Aeronave motorizada de transporte"},
+    {"word": "NAVIO", "clue": "Grande embarcação para transporte marítimo"},
+    {"word": "TREM", "clue": "Veículo que circula sobre trilhos"},
+    {"word": "BICICLETA", "clue": "Veículo de duas rodas movido a pedal"},
+    {"word": "ONIBUS", "clue": "Veículo coletivo de transporte urbano"},
+    {"word": "HELICÓPTERO", "clue": "Aeronave de asas rotativas"},
+    {"word": "HELICOPTERO", "clue": "Aeronave de asas rotativas"},
+    {"word": "MOTOCICLETA", "clue": "Veículo de duas rodas com motor"},
+    {"word": "SUBMARINO", "clue": "Embarcação que navega sob a água"},
+    # Outros
+    {"word": "HOSPITAL", "clue": "Instituição de saúde para tratamentos"},
+    {"word": "DEMOCRACIA", "clue": "Sistema de governo pelo povo"},
+    {"word": "JUSTICA", "clue": "Valor moral de tratar cada um com equidade"},
+    {"word": "AMOR", "clue": "Sentimento profundo de afeto e carinho"},
+    {"word": "ESPERANCA", "clue": "Sentimento de expectativa positiva no futuro"},
+    {"word": "LIBERDADE", "clue": "Estado de quem pode agir sem restrições"},
+    {"word": "TEMPO", "clue": "Medida da duração dos eventos"},
+    {"word": "NUMERO", "clue": "Elemento matemático fundamental"},
+    {"word": "BANCO", "clue": "Instituição financeira que guarda dinheiro"},
+    {"word": "HOTEL", "clue": "Estabelecimento comercial de hospedagem"},
+    {"word": "PRAIA", "clue": "Faixa de areia à beira do mar"},
+    {"word": "MERCADO", "clue": "Local de compra e venda de produtos"},
+    {"word": "JARDIM", "clue": "Espaço cultivado com plantas e flores"},
+    {"word": "CASTELO", "clue": "Grande construção medieval com torres"},
+    {"word": "PALACIO", "clue": "Residência suntuosa de governantes"},
+    {"word": "MUSEU", "clue": "Local que preserva e exibe obras de arte"},
+    {"word": "GALERIA", "clue": "Espaço expositivo de obras de arte"},
+    {"word": "BIBLIOTECA", "clue": "Local de acervo e leitura de livros"},
+    {"word": "LABORATORIO", "clue": "Espaço equipado para pesquisa científica"},
+    {"word": "OBSERVATORIO", "clue": "Local para observação astronômica"},
+]
+
+def get_word_list():
+    """Returns a shuffled copy of the word list."""
+    # Remove duplicate words (keeping first occurrence)
+    seen = set()
+    unique = []
+    for w in WORDS:
+        if w["word"] not in seen:
+            seen.add(w["word"])
+            unique.append(w)
+    result = unique.copy()
+    random.shuffle(result)
+    return result

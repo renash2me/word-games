@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jogos de Palavras</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #0d0d0d;
+  --surface:   #161616;
+  --surface2:  #1f1f1f;
+  --paper:     #F3EAD5;
+  --paper-alt: #EAE0C8;
+  --gold:      #C9A84C;
+  --gold-dim:  #8a6e2a;
+  --red:       #922B21;
+  --text:      #DDD3BC;
+  --muted:     #7a6e5c;
+  --border:    #2a2a2a;
+  --cell-sz:   36px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'EB Garamond', serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 16px;
+}
+
+/* ── HEADER ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 32px;
+  border-bottom: 1px solid var(--gold-dim);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.logo em {
+  font-weight: 400;
+  font-style: italic;
+  color: var(--text);
+  letter-spacing: .04em;
+  text-transform: none;
+}
+
+#navBack {
+  display: none;
+  background: transparent;
+  border: 1px solid var(--gold-dim);
+  color: var(--gold);
+  padding: 6px 18px;
+  font-family: 'EB Garamond', serif;
+  font-size: 15px;
+  cursor: pointer;
+  letter-spacing: .06em;
+  transition: all .15s;
+}
+#navBack:hover { background: var(--gold); color: var(--bg); }
+
+/* ── VIEWS ── */
+.view { display: none; }
+.view.active { display: block; }
+
+/* ── HOME ── */
+#home {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 72px 32px 48px;
+}
+
+.home-eyebrow {
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: .35em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 14px;
+}
+
+.home-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(36px, 6vw, 64px);
+  font-weight: 900;
+  text-align: center;
+  line-height: 1.05;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+.home-rule {
+  width: 60px;
+  height: 2px;
+  background: var(--gold);
+  margin: 20px auto 18px;
+}
+
+.home-sub {
+  text-align: center;
+  font-style: italic;
+  font-size: 18px;
+  color: var(--muted);
+  margin-bottom: 64px;
+}
+
+.game-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.game-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--gold-dim);
+  padding: 40px 32px 36px;
+  cursor: pointer;
+  transition: border-top-color .2s, box-shadow .2s, transform .15s;
+  text-align: center;
+}
+.game-card:hover {
+  border-top-color: var(--gold);
+  box-shadow: 0 0 40px rgba(201,168,76,.08);
+  transform: translateY(-3px);
+}
+
+.card-glyph {
+  font-size: 46px;
+  margin-bottom: 20px;
+  display: block;
+  line-height: 1;
+}
+
+.card-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gold);
+  margin-bottom: 12px;
+}
+
+.card-desc {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.65;
+  margin-bottom: 28px;
+}
+
+.card-btn {
+  display: inline-block;
+  background: var(--gold);
+  color: var(--bg);
+  padding: 9px 28px;
+  font-family: 'EB Garamond', serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+/* ── SHARED PUZZLE LAYOUT ── */
+.puzzle-page {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 28px 32px 60px;
+}
+
+.puzzle-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.puzzle-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.btn {
+  padding: 8px 20px;
+  font-family: 'EB Garamond', serif;
+  font-size: 15px;
+  cursor: pointer;
+  border: 1px solid;
+  letter-spacing: .05em;
+  transition: all .15s;
+}
+.btn-primary { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+.btn-primary:hover { background: #b8932e; }
+.btn-secondary { background: transparent; color: var(--text); border-color: var(--border); }
+.btn-secondary:hover { border-color: var(--gold-dim); color: var(--gold); }
+
+.msg-bar {
+  display: none;
+  padding: 13px 20px;
+  margin: 12px 0;
+  font-family: 'Playfair Display', serif;
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: .03em;
+}
+.msg-win  { background: var(--gold); color: var(--bg); }
+.msg-prog { background: var(--surface2); color: var(--text); border: 1px solid var(--border); font-family: 'EB Garamond', serif; font-size: 16px; font-weight: 400; }
+
+.loading {
+  padding: 80px;
+  text-align: center;
+  font-style: italic;
+  color: var(--muted);
+  font-size: 18px;
+}
+
+/* ── CROSSWORD ── */
+.cw-layout {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 36px;
+  align-items: start;
+}
+
+.cw-grid-wrap {
+  background: #444;
+  padding: 1px;
+  display: inline-block;
+  overflow-x: auto;
+}
+
+.cw-grid {
+  display: inline-grid;
+  gap: 1px;
+  background: #555;
+  user-select: none;
+}
+
+.cw-cell {
+  width: var(--cell-sz);
+  height: var(--cell-sz);
+  background: var(--bg);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.cw-cell.white { background: var(--paper); }
+.cw-cell.correct { background: #b8f0b8 !important; }
+.cw-cell.incorrect { background: #f0b8b8 !important; }
+.cw-cell.word-hl { background: #e8d9a8; }
+.cw-cell.cell-hl { background: #d4b84a; }
+
+.cw-num {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  font-size: 7.5px;
+  font-family: 'Courier Prime', monospace;
+  color: #444;
+  line-height: 1;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.cw-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  text-align: center;
+  text-transform: uppercase;
+  font-family: 'Courier Prime', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  cursor: pointer;
+  caret-color: transparent;
+  padding-top: 6px;
+  z-index: 1;
+}
+.cw-input:focus { outline: none; }
+
+/* Clues panel */
+.clues-panel {
+  max-height: 560px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.clues-panel::-webkit-scrollbar { width: 4px; }
+.clues-panel::-webkit-scrollbar-thumb { background: var(--border); }
+
+.clues-section { margin-bottom: 24px; }
+
+.clues-head {
+  font-size: 10px;
+  letter-spacing: .3em;
+  text-transform: uppercase;
+  color: var(--gold);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 7px;
+  margin-bottom: 10px;
+}
+
+.clue-item {
+  display: flex;
+  gap: 8px;
+  padding: 4px 8px;
+  font-size: 14px;
+  line-height: 1.45;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: border-color .1s;
+}
+.clue-item:hover { border-left-color: var(--gold-dim); }
+.clue-item.active-clue { border-left-color: var(--gold); background: rgba(201,168,76,.06); }
+
+.clue-n {
+  color: var(--gold);
+  font-family: 'Courier Prime', monospace;
+  font-size: 13px;
+  min-width: 26px;
+  font-weight: 700;
+}
+.clue-t { color: var(--muted); }
+.clue-item.active-clue .clue-t { color: var(--text); }
+
+/* ── CRYPTOGRAM ── */
+.crypto-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.crypto-phrase-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 36px 28px;
+}
+
+.crypto-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px 20px;
+  justify-content: center;
+}
+
+.crypto-word { display: flex; gap: 3px; }
+
+.crypto-char {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.crypto-sym {
+  font-size: 26px;
+  color: var(--gold);
+  width: 38px;
+  text-align: center;
+  line-height: 1;
+  font-family: monospace;
+}
+
+.crypto-in {
+  width: 38px;
+  height: 34px;
+  background: var(--paper);
+  border: none;
+  border-bottom: 2px solid #999;
+  text-align: center;
+  text-transform: uppercase;
+  font-family: 'Courier Prime', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111;
+  transition: border-color .15s, background .15s;
+}
+.crypto-in:focus { outline: none; border-bottom-color: var(--gold); background: #fffbe8; }
+.crypto-in.correct { background: #c8f0c0; border-bottom-color: #3a8a3a; }
+.crypto-in.incorrect { background: #f0c0c0; border-bottom-color: #8a3a3a; }
+.crypto-in:disabled { color: #555; background: #ddd; cursor: default; }
+
+.crypto-ref {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 24px;
+}
+
+.ref-head {
+  font-size: 10px;
+  letter-spacing: .3em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 16px;
+}
+
+.ref-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+}
+
+.ref-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Courier Prime', monospace;
+  font-size: 15px;
+  min-width: 78px;
+}
+
+.ref-sym { color: var(--gold); font-size: 20px; width: 26px; text-align: center; }
+.ref-eq  { color: var(--muted); }
+.ref-ltr { color: var(--text); font-weight: 700; min-width: 14px; }
+
+@media (max-width: 760px) {
+  .cw-layout { grid-template-columns: 1fr; }
+  .game-cards { grid-template-columns: 1fr; }
+  .puzzle-page { padding: 20px 16px 48px; }
+  header { padding: 12px 16px; }
+  #home { padding: 40px 16px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Jogos <em>de</em> Palavras</div>
+  <button id="navBack" onclick="showHome()">← Menu</button>
+</header>
+
+<!-- HOME -->
+<div id="home" class="view active">
+  <div class="home-eyebrow">Passatempo em Português</div>
+  <h1 class="home-title">Jogos<br>de Palavras</h1>
+  <div class="home-rule"></div>
+  <p class="home-sub">Escolha o seu desafio</p>
+
+  <div class="game-cards">
+    <div class="game-card" onclick="showCrossword()">
+      <span class="card-glyph">🔤</span>
+      <div class="card-title">Palavras Cruzadas</div>
+      <p class="card-desc">
+        Grade gerada automaticamente com palavras do vocabulário português.
+        Preencha horizontal e verticalmente a partir das dicas.
+      </p>
+      <span class="card-btn">Jogar</span>
+    </div>
+
+    <div class="game-card" onclick="showCryptogram()">
+      <span class="card-glyph">🔐</span>
+      <div class="card-title">Criptograma</div>
+      <p class="card-desc">
+        Cada letra de um provérbio foi trocada por um símbolo único.
+        Descubra o código e revele a frase escondida!
+      </p>
+      <span class="card-btn">Jogar</span>
+    </div>
+  </div>
+</div>
+
+<!-- CROSSWORD -->
+<div id="crossword" class="view">
+  <div class="puzzle-page">
+    <div class="puzzle-header">
+      <div class="puzzle-title">Palavras Cruzadas</div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="loadCrossword()">Novo Jogo</button>
+        <button class="btn btn-primary"   onclick="checkCrossword()">Verificar</button>
+      </div>
+    </div>
+    <div id="cwMsg" class="msg-bar"></div>
+    <div id="cwContent"><div class="loading">Gerando o puzzle…</div></div>
+  </div>
+</div>
+
+<!-- CRYPTOGRAM -->
+<div id="cryptogram" class="view">
+  <div class="puzzle-page">
+    <div class="puzzle-header">
+      <div class="puzzle-title">Criptograma</div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="loadCryptogram()">Novo Jogo</button>
+        <button class="btn btn-secondary" onclick="hintCryptogram()">💡 Dica</button>
+        <button class="btn btn-primary"   onclick="checkCryptogram()">Verificar</button>
+      </div>
+    </div>
+    <div id="cryptoMsg" class="msg-bar"></div>
+    <div id="cryptoContent"><div class="loading">Gerando o criptograma…</div></div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════ */
+let cwData     = null;
+let cwCellMap  = {};     // "r,c" → {H: clue|null, V: clue|null}
+let cwClues    = [];     // flat ordered clue list [{num,dir,row,col,len,clue}]
+let cwSel      = null;   // {r, c}
+let cwDir      = 'H';
+
+let cryptoData = null;
+
+/* ═══════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════ */
+function showHome() {
+  activateView('home');
+  document.getElementById('navBack').style.display = 'none';
+}
+function showCrossword() {
+  activateView('crossword');
+  document.getElementById('navBack').style.display = 'block';
+  if (!cwData) loadCrossword();
+}
+function showCryptogram() {
+  activateView('cryptogram');
+  document.getElementById('navBack').style.display = 'block';
+  if (!cryptoData) loadCryptogram();
+}
+function activateView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+/* ═══════════════════════════════════════════
+   CROSSWORD — LOAD & RENDER
+═══════════════════════════════════════════ */
+async function loadCrossword() {
+  cwData = null; cwCellMap = {}; cwClues = []; cwSel = null;
+  document.getElementById('cwContent').innerHTML = '<div class="loading">Gerando o puzzle…</div>';
+  hideMsg('cwMsg');
+  try {
+    const res = await fetch('/api/crossword');
+    cwData = await res.json();
+    buildCellMap();
+    buildClueOrder();
+    renderCrossword();
+  } catch(e) {
+    document.getElementById('cwContent').innerHTML = '<div class="loading">Erro ao carregar. Tente novamente.</div>';
+  }
+}
+
+function buildCellMap() {
+  cwCellMap = {};
+  function reg(clues, dir) {
+    for (const cl of clues) {
+      for (let i = 0; i < cl.len; i++) {
+        const r = cl.row + (dir === 'V' ? i : 0);
+        const c = cl.col + (dir === 'H' ? i : 0);
+        const k = `${r},${c}`;
+        if (!cwCellMap[k]) cwCellMap[k] = {H: null, V: null};
+        cwCellMap[k][dir] = cl;
+      }
+    }
+  }
+  reg(cwData.clues_across, 'H');
+  reg(cwData.clues_down,   'V');
+}
+
+function buildClueOrder() {
+  const h = cwData.clues_across.map(c => ({...c, dir:'H'}));
+  const v = cwData.clues_down.map(c   => ({...c, dir:'V'}));
+  cwClues = [...h, ...v].sort((a,b) => a.num - b.num || (a.dir==='H'?-1:1));
+}
+
+function renderCrossword() {
+  const {grid, rows, cols, clues_across, clues_down, cell_numbers} = cwData;
+
+  // Grid
+  let g = `<div class="cw-grid" style="grid-template-columns:repeat(${cols},var(--cell-sz))">`;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const ch  = grid[r][c];
+      const num = cell_numbers[`${r},${c}`];
+      if (ch === '#') {
+        g += `<div class="cw-cell"></div>`;
+      } else {
+        g += `<div class="cw-cell white" id="cw-${r}-${c}" onclick="cwCellClick(${r},${c})">`;
+        if (num) g += `<span class="cw-num">${num}</span>`;
+        g += `<input class="cw-input" id="cwi-${r}-${c}" type="text" maxlength="2"
+          data-r="${r}" data-c="${c}" autocomplete="off" spellcheck="false"
+          onkeydown="cwKeyDown(event,${r},${c})"
+          oninput="cwInput(event,${r},${c})"
+          onfocus="cwFocus(${r},${c})">`;
+        g += `</div>`;
+      }
+    }
+  }
+  g += `</div>`;
+
+  // Clues
+  const mkClue = (cl, dir) =>
+    `<div class="clue-item" id="clue-${cl.num}-${dir}"
+       onclick="clueClick(${cl.num},'${dir}',${cl.row},${cl.col},${cl.len})">
+      <span class="clue-n">${cl.num}.</span>
+      <span class="clue-t">${cl.clue}</span>
+    </div>`;
+
+  let panel = `<div class="clues-panel">
+    <div class="clues-section">
+      <div class="clues-head">Horizontal</div>
+      ${clues_across.map(cl => mkClue(cl,'H')).join('')}
+    </div>
+    <div class="clues-section">
+      <div class="clues-head">Vertical</div>
+      ${clues_down.map(cl => mkClue(cl,'V')).join('')}
+    </div>
+  </div>`;
+
+  document.getElementById('cwContent').innerHTML =
+    `<div class="cw-layout">
+       <div class="cw-grid-wrap">${g}</div>
+       ${panel}
+     </div>`;
+}
+
+/* ═══════════════════════════════════════════
+   CROSSWORD — INTERACTION
+═══════════════════════════════════════════ */
+function cwFocus(r, c) {
+  cwSel = {r, c};
+  cwHighlight();
+}
+
+function cwCellClick(r, c) {
+  if (cwSel && cwSel.r === r && cwSel.c === c) {
+    const other = cwDir === 'H' ? 'V' : 'H';
+    const info  = cwCellMap[`${r},${c}`];
+    if (info && info[other]) cwDir = other;
+  } else {
+    cwSel = {r, c};
+    const info = cwCellMap[`${r},${c}`];
+    if (info && !info[cwDir] && info[cwDir==='H'?'V':'H']) {
+      cwDir = cwDir === 'H' ? 'V' : 'H';
+    }
+  }
+  focusCell(r, c);
+  cwHighlight();
+}
+
+function cwKeyDown(e, r, c) {
+  const arrows = {ArrowRight:[0,1,'H'], ArrowLeft:[0,-1,'H'],
+                  ArrowDown:[1,0,'V'],  ArrowUp:[-1,0,'V']};
+
+  if (arrows[e.key]) {
+    e.preventDefault();
+    const [dr, dc, dir] = arrows[e.key];
+    cwDir = dir;
+    const inp = document.getElementById(`cwi-${r+dr}-${c+dc}`);
+    if (inp) { inp.focus(); cwSel = {r:r+dr, c:c+dc}; cwHighlight(); }
+    return;
+  }
+
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    cwNextClue(e.shiftKey ? -1 : 1);
+    return;
+  }
+
+  if (e.key === 'Backspace') {
+    const inp = document.getElementById(`cwi-${r}-${c}`);
+    if (inp.value) {
+      inp.value = '';
+      clearCellState(r, c);
+    } else {
+      cwMovePrev(r, c);
+    }
+    e.preventDefault();
+  }
+}
+
+function cwInput(e, r, c) {
+  const inp = e.target;
+  const raw = inp.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z]/g,'');
+  inp.value  = raw ? raw[raw.length-1] : '';
+  clearCellState(r, c);
+  if (inp.value) cwMoveNext(r, c);
+}
+
+function clearCellState(r, c) {
+  const cell = document.getElementById(`cw-${r}-${c}`);
+  if (cell) cell.classList.remove('correct','incorrect');
+}
+
+function cwMoveNext(r, c) {
+  const info = cwCellMap[`${r},${c}`];
+  const cl   = info && info[cwDir];
+  if (!cl) return;
+  const nr = r + (cwDir==='V' ? 1 : 0);
+  const nc = c + (cwDir==='H' ? 1 : 0);
+  const inRange = cwDir==='H' ? nc < cl.col+cl.len : nr < cl.row+cl.len;
+  if (inRange) { const i = document.getElementById(`cwi-${nr}-${nc}`); if(i){i.focus();cwSel={r:nr,c:nc};cwHighlight();} }
+}
+
+function cwMovePrev(r, c) {
+  const info = cwCellMap[`${r},${c}`];
+  const cl   = info && info[cwDir];
+  if (!cl) return;
+  const pr = r - (cwDir==='V' ? 1 : 0);
+  const pc = c - (cwDir==='H' ? 1 : 0);
+  const inRange = cwDir==='H' ? pc >= cl.col : pr >= cl.row;
+  if (inRange) {
+    const i = document.getElementById(`cwi-${pr}-${pc}`);
+    if (i) { i.value=''; i.focus(); cwSel={r:pr,c:pc}; clearCellState(pr,pc); cwHighlight(); }
+  }
+}
+
+function cwNextClue(step) {
+  const info = cwSel && cwCellMap[`${cwSel.r},${cwSel.c}`];
+  const cur  = info && info[cwDir];
+  let idx = cur ? cwClues.findIndex(cl => cl.num===cur.num && cl.dir===cwDir) : -1;
+  idx = ((idx + step) % cwClues.length + cwClues.length) % cwClues.length;
+  const next = cwClues[idx];
+  cwDir = next.dir;
+  clueClick(next.num, next.dir, next.row, next.col, next.len);
+}
+
+function clueClick(num, dir, row, col, len) {
+  cwDir = dir;
+  for (let i = 0; i < len; i++) {
+    const r = row + (dir==='V' ? i : 0);
+    const c = col + (dir==='H' ? i : 0);
+    const inp = document.getElementById(`cwi-${r}-${c}`);
+    if (inp && !inp.value) { inp.focus(); cwSel={r,c}; cwHighlight(); return; }
+  }
+  const inp = document.getElementById(`cwi-${row}-${col}`);
+  if (inp) { inp.focus(); cwSel={r:row,c:col}; cwHighlight(); }
+}
+
+function focusCell(r, c) {
+  const inp = document.getElementById(`cwi-${r}-${c}`);
+  if (inp) inp.focus();
+}
+
+function cwHighlight() {
+  // Reset all
+  document.querySelectorAll('.cw-cell.white').forEach(el => {
+    el.classList.remove('word-hl','cell-hl');
+  });
+  document.querySelectorAll('.clue-item').forEach(el => el.classList.remove('active-clue'));
+
+  if (!cwSel) return;
+  const {r, c} = cwSel;
+  const info = cwCellMap[`${r},${c}`];
+  const cl   = info && info[cwDir];
+  if (!cl) return;
+
+  // Highlight word
+  for (let i = 0; i < cl.len; i++) {
+    const wr = cl.row + (cwDir==='V' ? i : 0);
+    const wc = cl.col + (cwDir==='H' ? i : 0);
+    const cell = document.getElementById(`cw-${wr}-${wc}`);
+    if (cell && !cell.classList.contains('correct') && !cell.classList.contains('incorrect')) {
+      cell.classList.add('word-hl');
+    }
+  }
+
+  // Highlight selected cell
+  const selCell = document.getElementById(`cw-${r}-${c}`);
+  if (selCell && !selCell.classList.contains('correct') && !selCell.classList.contains('incorrect')) {
+    selCell.classList.remove('word-hl');
+    selCell.classList.add('cell-hl');
+  }
+
+  // Highlight clue
+  const clueEl = document.getElementById(`clue-${cl.num}-${cwDir}`);
+  if (clueEl) {
+    clueEl.classList.add('active-clue');
+    clueEl.scrollIntoView({block:'nearest'});
+  }
+}
+
+function checkCrossword() {
+  if (!cwData) return;
+  const {grid, rows, cols} = cwData;
+  let total = 0, correct = 0;
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (grid[r][c] === '#') continue;
+      total++;
+      const cell = document.getElementById(`cw-${r}-${c}`);
+      const inp  = document.getElementById(`cwi-${r}-${c}`);
+      if (!cell || !inp) continue;
+      cell.classList.remove('correct','incorrect','word-hl','cell-hl');
+      if (inp.value.toUpperCase() === grid[r][c]) {
+        cell.classList.add('correct'); correct++;
+      } else if (inp.value) {
+        cell.classList.add('incorrect');
+      }
+    }
+  }
+
+  const msg = document.getElementById('cwMsg');
+  if (correct === total && total > 0) {
+    showMsg('cwMsg', `🎉 Parabéns! Você completou as palavras cruzadas!`, 'win');
+  } else {
+    showMsg('cwMsg', `${correct} de ${total} células corretas — continue!`, 'prog');
+    setTimeout(() => hideMsg('cwMsg'), 3500);
+  }
+}
+
+/* ═══════════════════════════════════════════
+   CRYPTOGRAM — LOAD & RENDER
+═══════════════════════════════════════════ */
+async function loadCryptogram() {
+  cryptoData = null;
+  document.getElementById('cryptoContent').innerHTML = '<div class="loading">Gerando o criptograma…</div>';
+  hideMsg('cryptoMsg');
+  try {
+    const res  = await fetch('/api/cryptogram');
+    cryptoData = await res.json();
+    renderCryptogram();
+  } catch(e) {
+    document.getElementById('cryptoContent').innerHTML = '<div class="loading">Erro ao carregar. Tente novamente.</div>';
+  }
+}
+
+function symKey(sym) {
+  return 'sym_' + [...sym].map(ch=>ch.codePointAt(0).toString(16)).join('_');
+}
+
+function renderCryptogram() {
+  const {encoded_words, symbols_used, hint} = cryptoData;
+
+  // Phrase area
+  let phrase = '<div class="crypto-words">';
+  for (const word of encoded_words) {
+    phrase += '<div class="crypto-word">';
+    for (const sym of word) {
+      const sk = symKey(sym);
+      phrase += `<div class="crypto-char">
+        <div class="crypto-sym">${sym}</div>
+        <input class="crypto-in" id="${sk}" type="text" maxlength="2"
+          data-sym="${sym}" autocomplete="off" spellcheck="false"
+          oninput="cryptoInput(this)"
+          onkeydown="cryptoKeyDown(event,this)">
+      </div>`;
+    }
+    phrase += '</div>';
+  }
+  phrase += '</div>';
+
+  // Reference table
+  let ref = '<div class="ref-grid">';
+  for (const sym of symbols_used) {
+    const sk = symKey(sym);
+    ref += `<div class="ref-item">
+      <span class="ref-sym">${sym}</span>
+      <span class="ref-eq">=</span>
+      <span class="ref-ltr" id="rl-${sk}">_</span>
+    </div>`;
+  }
+  ref += '</div>';
+
+  document.getElementById('cryptoContent').innerHTML = `
+    <div class="crypto-layout">
+      <div class="crypto-phrase-box">${phrase}</div>
+      <div class="crypto-ref">
+        <div class="ref-head">Legenda de Símbolos</div>
+        ${ref}
+      </div>
+    </div>`;
+
+  // Apply free hint
+  if (hint) {
+    applyHint(hint.symbol, hint.letter, true);
+  }
+}
+
+function cryptoInput(inp) {
+  const sym = inp.dataset.sym;
+  const raw = inp.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z]/g,'');
+  const ch  = raw ? raw[raw.length-1] : '';
+
+  // Sync all inputs for same symbol
+  document.querySelectorAll(`.crypto-in[data-sym="${CSS.escape(sym)}"]`).forEach(i => {
+    if (!i.disabled) { i.value = ch; i.classList.remove('correct','incorrect'); }
+  });
+  updateRefLegend(sym, ch);
+
+  // Move to next
+  if (ch) {
+    const all = [...document.querySelectorAll('.crypto-in:not([disabled])')];
+    const idx = all.indexOf(inp);
+    if (idx < all.length-1) all[idx+1].focus();
+  }
+}
+
+function cryptoKeyDown(e, inp) {
+  if (e.key === 'Backspace' && !inp.value) {
+    const all = [...document.querySelectorAll('.crypto-in:not([disabled])')];
+    const idx = all.indexOf(inp);
+    if (idx > 0) all[idx-1].focus();
+    e.preventDefault();
+  }
+}
+
+function updateRefLegend(sym, letter) {
+  const sk = symKey(sym);
+  const el = document.getElementById(`rl-${sk}`);
+  if (el) el.textContent = letter || '_';
+}
+
+function applyHint(sym, letter, isFixed) {
+  document.querySelectorAll(`.crypto-in[data-sym="${CSS.escape(sym)}"]`).forEach(inp => {
+    inp.value = letter;
+    if (isFixed) inp.disabled = true;
+    inp.classList.remove('correct','incorrect');
+  });
+  updateRefLegend(sym, letter);
+}
+
+function hintCryptogram() {
+  if (!cryptoData) return;
+  const {mapping} = cryptoData;
+  const unknown = Object.entries(mapping).filter(([sym]) => {
+    const all = [...document.querySelectorAll(`.crypto-in[data-sym="${CSS.escape(sym)}"]`)];
+    const cl  = mapping[sym];
+    return !all.every(inp => inp.value.toUpperCase() === cl);
+  });
+  if (!unknown.length) return;
+  const [sym, letter] = unknown[Math.floor(Math.random() * unknown.length)];
+  applyHint(sym, letter, false);
+}
+
+function checkCryptogram() {
+  if (!cryptoData) return;
+  const {mapping, symbols_used} = cryptoData;
+  let total = 0, correct = 0;
+
+  // Clear all markings
+  document.querySelectorAll('.crypto-in').forEach(inp => inp.classList.remove('correct','incorrect'));
+
+  for (const sym of symbols_used) {
+    const expected = mapping[sym];
+    if (!expected) continue;
+    total++;
+    const all = [...document.querySelectorAll(`.crypto-in[data-sym="${CSS.escape(sym)}"]`)];
+    const val = all[0]?.value?.toUpperCase();
+    const ok  = val === expected;
+    if (ok) correct++;
+    all.forEach(inp => inp.classList.add(ok ? 'correct' : (inp.value ? 'incorrect' : '')));
+  }
+
+  if (correct === total && total > 0) {
+    showMsg('cryptoMsg', `🎉 Parabéns! Você decifrou o criptograma!`, 'win');
+  } else {
+    showMsg('cryptoMsg', `${correct} de ${total} símbolos corretos — continue!`, 'prog');
+    setTimeout(() => hideMsg('cryptoMsg'), 3500);
+  }
+}
+
+/* ═══════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════ */
+function showMsg(id, text, type) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = `msg-bar msg-${type}`;
+  el.style.display = 'block';
+}
+function hideMsg(id) {
+  document.getElementById(id).style.display = 'none';
+}
+</script>
+</body>
+</html>

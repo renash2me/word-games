@@ -1,0 +1,21 @@
+# ============================================================
+#  compose.yml — Raspberry Pi / OMV
+#  Coloque este arquivo no Pi e rode: docker compose up -d
+#  Para atualizar: docker compose pull && docker compose up -d
+# ============================================================
+#
+#  ⚠️  ANTES DE USAR: substitua SEU_USUARIO pelo seu username
+#      do GitHub em "image:" abaixo.
+#
+services:
+  word-games:
+    image: ghcr.io/SEU_USUARIO/word-games:latest
+    container_name: word-games
+    ports:
+      - "8080:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

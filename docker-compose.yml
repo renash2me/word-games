@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  word-games:
+    build: .
+    container_name: word-games
+    ports:
+      - "8080:8000"
+    volumes:
+      # Mount static folder so you can edit index.html without rebuild
+      - ./static:/app/static:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
