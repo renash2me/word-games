@@ -761,8 +761,9 @@ function cwKeyDown(e, r, c) {
 
 function cwInput(e, r, c) {
   const inp = e.target;
-  const raw = inp.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z]/g,'');
-  inp.value  = raw ? raw[raw.length-1] : '';
+  const rawInput = inp.value.replace(/[^A-Za-zÀ-ÿ]/g, '');
+  const displayed = rawInput ? rawInput[rawInput.length-1].toUpperCase() : '';
+  inp.value = displayed;   // preserva acentuação
   clearCellState(r, c);
   if (inp.value) cwMoveNext(r, c);
 }
@@ -873,7 +874,7 @@ function checkCrossword() {
       const inp  = document.getElementById(`cwi-${r}-${c}`);
       if (!cell || !inp) continue;
       cell.classList.remove('correct','incorrect','word-hl','cell-hl');
-      if (inp.value.toUpperCase() === grid[r][c]) {
+      if (stripAccents(inp.value) === grid[r][c]) {
         cell.classList.add('correct'); correct++;
       } else if (inp.value) {
         cell.classList.add('incorrect');
@@ -961,24 +962,32 @@ function renderCryptogram() {
 
 function cryptoInput(inp) {
   const sym = inp.dataset.sym;
-  const raw = inp.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z]/g,'');
-  const ch  = raw ? raw[raw.length-1] : '';
+  // Pega só o último caractere válido (letra com ou sem acento)
+  const rawInput = inp.value.replace(/[^A-Za-zÀ-ÿ]/g, '');
+  const displayed = rawInput ? rawInput[rawInput.length-1].toUpperCase() : '';
+  inp.value = displayed;  // preserva acentuação para exibição
 
-  if (cryptoAutoFill) {
-    // Propaga para todas as células com o mesmo símbolo
+  inp.classList.remove('correct','incorrect');
+
+  if (cryptoAutoFill && displayed) {
+    // Propaga o MESMO caractere visual para todas as células do mesmo símbolo
     document.querySelectorAll(`.coq-in[data-sym="${CSS.escape(sym)}"]`).forEach(i => {
-      if (!i.disabled) {
-        i.value = ch;
+      if (!i.disabled && i !== inp) {
+        i.value = displayed;
         i.classList.remove('correct','incorrect');
       }
     });
-  } else {
-    // Preenche só a célula atual
-    inp.value = ch;
-    inp.classList.remove('correct','incorrect');
+  } else if (cryptoAutoFill && !displayed) {
+    // Limpando: limpa os irmãos também
+    document.querySelectorAll(`.coq-in[data-sym="${CSS.escape(sym)}"]`).forEach(i => {
+      if (!i.disabled && i !== inp) {
+        i.value = '';
+        i.classList.remove('correct','incorrect');
+      }
+    });
   }
 
-  if (ch) {
+  if (displayed) {
     const all = [...document.querySelectorAll('.coq-in:not([disabled])')];
     const idx = all.indexOf(inp);
     if (idx < all.length - 1) all[idx+1].focus();
@@ -1008,7 +1017,7 @@ function hintCryptogram() {
   const unknown = Object.entries(mapping).filter(([sym, letter]) => {
     const all = [...document.querySelectorAll(`.coq-in[data-sym="${CSS.escape(sym)}"]`)];
     if (!all.length) return false;
-    return !all.every(inp => inp.value.toUpperCase() === letter);
+    return !all.every(inp => stripAccents(inp.value) === letter);
   });
   if (!unknown.length) return;
   const [sym, letter] = unknown[Math.floor(Math.random() * unknown.length)];
@@ -1028,7 +1037,7 @@ function checkCryptogram() {
     const all = [...document.querySelectorAll(`.coq-in[data-sym="${CSS.escape(sym)}"]`)];
     if (!all.length) continue;
     total++;
-    const val = all[0].value.toUpperCase();
+    const val = stripAccents(all[0].value);
     const ok  = val === expected;
     if (ok) correct++;
     all.forEach(inp => {
@@ -1048,6 +1057,11 @@ function checkCryptogram() {
 /* ═══════════════════════════════════════════
    UTILS
 ═══════════════════════════════════════════ */
+// Remove acentos para COMPARAÇÃO (visualização preserva acentos digitados)
+function stripAccents(s) {
+  return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+}
+
 function showMsg(id, text, type) {
   const el = document.getElementById(id);
   el.textContent = text;
