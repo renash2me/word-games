@@ -9,10 +9,10 @@
 #
 services:
   word-games:
-    image: ghcr.io/renash2me/word-games:latest
+    image: ghcr.io/SEU_USUARIO/word-games:latest
     container_name: word-games
     ports:
-      - "8765:8000"
+      - "8080:8000"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
