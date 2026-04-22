@@ -41,12 +41,16 @@ SECRETS = [
 ]
 
 
-def _try_build(secret_obj, bank):
-    """Tenta montar um criptograma para uma palavra secreta. Retorna None se falhar."""
+def _try_build_with_size(secret_obj, bank, target_size):
+    """
+    Tenta montar um criptograma com palavras TODAS do mesmo tamanho.
+    A célula destacada em cada linha cai em posição (possivelmente)
+    diferente — são essas letras que formam a palavra secreta.
+    """
     secret = secret_obj["word"]
     theme  = secret_obj["theme"]
 
-    pool = [w for w in bank if w["word"] != secret and 4 <= len(w["word"]) <= 11]
+    pool = [w for w in bank if w["word"] != secret and len(w["word"]) == target_size]
     random.shuffle(pool)
 
     used = set()
@@ -56,13 +60,10 @@ def _try_build(secret_obj, bank):
         candidates = [w for w in pool if letter in w["word"] and w["word"] not in used]
         if not candidates:
             return None
-        # Prefere palavras menores para layout compacto, com alguma variedade
-        candidates.sort(key=lambda w: len(w["word"]))
-        pick_from = candidates[:max(4, len(candidates) // 2)]
-        chosen = random.choice(pick_from)
+        chosen = random.choice(candidates)
         used.add(chosen["word"])
 
-        # Escolhe uma ocorrência aleatória da letra
+        # Escolhe uma ocorrência aleatória da letra dentro da palavra
         positions = [i for i, ch in enumerate(chosen["word"]) if ch == letter]
         pos = random.choice(positions)
 
@@ -72,7 +73,7 @@ def _try_build(secret_obj, bank):
             "highlight_pos": pos,
         })
 
-    # Gera cifra única para TODAS as letras usadas (nas linhas + na secreta)
+    # Gera cifra única para todas as letras usadas
     all_letters = set(secret)
     for r in rows:
         all_letters.update(r["word"])
@@ -84,43 +85,46 @@ def _try_build(secret_obj, bank):
     symbols = random.sample(SYMBOL_POOL, len(letters))
     letter_to_symbol = dict(zip(letters, symbols))
 
-    # Monta linhas de saída com símbolos + alinhamento
     out_rows = []
     for r in rows:
-        row_symbols = [letter_to_symbol[ch] for ch in r["word"]]
         out_rows.append({
-            "clue": r["clue"],
-            "symbols": row_symbols,
-            "highlight_idx": r["highlight_pos"],
-            "word_length": len(r["word"]),
+            "clue":          r["clue"],
+            "symbols":       [letter_to_symbol[ch] for ch in r["word"]],
+            "highlight_idx": r["highlight_pos"],  # posição destacada NESTA linha
         })
 
-    # Alinhamento vertical: todas as posições destacadas caem na mesma coluna
-    max_left  = max(r["highlight_idx"] for r in out_rows)
-    max_right = max(r["word_length"] - r["highlight_idx"] - 1 for r in out_rows)
-    total_cols = max_left + 1 + max_right
-
-    for r in out_rows:
-        r["start_col"] = max_left - r["highlight_idx"]
-
     return {
-        "theme":          theme,
-        "secret_length":  len(secret),
-        "total_cols":     total_cols,
-        "highlight_col":  max_left,
-        "rows":           out_rows,
-        "symbols_used":   list(letter_to_symbol.values()),
-        "mapping":        {v: k for k, v in letter_to_symbol.items()},
-        "secret":         secret,
+        "theme":         theme,
+        "secret_length": len(secret),
+        "word_size":     target_size,  # largura da grade (igual p/ todas)
+        "rows":          out_rows,
+        "symbols_used":  list(letter_to_symbol.values()),
+        "mapping":       {v: k for k, v in letter_to_symbol.items()},
+        "secret":        secret,
     }
 
 
-def generate_cryptogram():
+def generate_cryptogram(word_size=7):
+    """
+    Gera criptograma com palavras todas do tamanho word_size.
+    word_size: 7 (fácil), 8 (médio), 9 (difícil), 10 (expert).
+    """
+    if word_size not in (7, 8, 9, 10):
+        word_size = 7
+
     bank = get_word_list()
-    attempts = random.sample(SECRETS, len(SECRETS))
-    for secret in attempts:
-        for _ in range(4):  # algumas tentativas de randomização por secreta
-            result = _try_build(secret, bank)
-            if result:
-                return result
+    # Ordem de fallback se tamanho alvo falhar: tenta o exato, depois próximos
+    fallback_order = [word_size]
+    for delta in (1, -1, 2, -2):
+        cand = word_size + delta
+        if 6 <= cand <= 10 and cand not in fallback_order:
+            fallback_order.append(cand)
+
+    for target_size in fallback_order:
+        attempts = random.sample(SECRETS, len(SECRETS))
+        for secret in attempts:
+            for _ in range(4):
+                result = _try_build_with_size(secret, bank, target_size)
+                if result:
+                    return result
     return {"error": "Não foi possível gerar o criptograma"}

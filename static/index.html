@@ -197,7 +197,32 @@ header {
   color: var(--gold);
 }
 
-.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.difficulty-picker {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  margin-right: 6px;
+}
+.diff-btn {
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border);
+  color: var(--muted);
+  padding: 8px 14px;
+  font-family: 'EB Garamond', serif;
+  font-size: 13px;
+  letter-spacing: .05em;
+  cursor: pointer;
+  transition: all .15s;
+}
+.diff-btn:last-child { border-right: none; }
+.diff-btn:hover { color: var(--text); background: rgba(201,168,76,.05); }
+.diff-btn.active {
+  background: var(--gold);
+  color: var(--bg);
+  font-weight: 600;
+}
 
 .btn {
   padding: 8px 20px;
@@ -409,23 +434,10 @@ header {
   border: 1px solid #999;
   position: relative;
 }
-.coq-cell.blocked {
-  background: var(--bg);
-  border: none;
-}
 .coq-cell.hl-col {
   background: #efe0b0;
-  border-top: 3px solid var(--gold);
-  border-bottom: 3px solid var(--gold);
-  border-left: 1px solid var(--gold-dim);
-  border-right: 1px solid var(--gold-dim);
-}
-.coq-cell.hl-col.blocked {
-  background: transparent;
-  border-top: 3px solid var(--gold);
-  border-bottom: 3px solid var(--gold);
-  border-left: 1px dashed var(--gold-dim);
-  border-right: 1px dashed var(--gold-dim);
+  border: 3px solid var(--gold);
+  z-index: 1;
 }
 
 .coq-sym {
@@ -538,6 +550,12 @@ header {
     <div class="puzzle-header">
       <div class="puzzle-title">Criptograma</div>
       <div class="btn-row">
+        <div class="difficulty-picker">
+          <button class="diff-btn active" data-size="7"  onclick="setDifficulty(7)">Fácil</button>
+          <button class="diff-btn"        data-size="8"  onclick="setDifficulty(8)">Médio</button>
+          <button class="diff-btn"        data-size="9"  onclick="setDifficulty(9)">Difícil</button>
+          <button class="diff-btn"        data-size="10" onclick="setDifficulty(10)">Expert</button>
+        </div>
         <button class="btn btn-secondary" onclick="loadCryptogram()">Novo Jogo</button>
         <button class="btn btn-secondary" onclick="hintCryptogram()">💡 Dica</button>
         <button class="btn btn-primary"   onclick="checkCryptogram()">Verificar</button>
@@ -559,6 +577,7 @@ let cwSel      = null;   // {r, c}
 let cwDir      = 'H';
 
 let cryptoData = null;
+let cryptoDifficulty = 7;   // 7 | 8 | 9 | 10
 
 /* ═══════════════════════════════════════════
    NAVIGATION
@@ -863,12 +882,20 @@ function checkCrossword() {
 /* ═══════════════════════════════════════════
    CRYPTOGRAM — Estilo Coquetel (tema + palavra secreta)
 ═══════════════════════════════════════════ */
+function setDifficulty(size) {
+  cryptoDifficulty = size;
+  document.querySelectorAll('.diff-btn').forEach(b => {
+    b.classList.toggle('active', Number(b.dataset.size) === size);
+  });
+  loadCryptogram();
+}
+
 async function loadCryptogram() {
   cryptoData = null;
   document.getElementById('cryptoContent').innerHTML = '<div class="loading">Gerando o criptograma…</div>';
   hideMsg('cryptoMsg');
   try {
-    const res  = await fetch('/api/cryptogram');
+    const res  = await fetch(`/api/cryptogram?size=${cryptoDifficulty}`);
     cryptoData = await res.json();
     renderCryptogram();
   } catch(e) {
@@ -881,7 +908,7 @@ function symKey(sym) {
 }
 
 function renderCryptogram() {
-  const {theme, total_cols, highlight_col, rows} = cryptoData;
+  const {theme, word_size, rows} = cryptoData;
 
   let html = `
     <div class="coq-theme">
@@ -893,25 +920,19 @@ function renderCryptogram() {
   rows.forEach((row, ri) => {
     html += `<div class="coq-row">
       <div class="coq-clue">${row.clue}</div>
-      <div class="coq-cells" style="grid-template-columns: repeat(${total_cols}, 38px);">`;
+      <div class="coq-cells" style="grid-template-columns: repeat(${word_size}, 38px);">`;
 
-    for (let col = 0; col < total_cols; col++) {
-      const cellIdx = col - row.start_col;
-      const hl = col === highlight_col ? ' hl-col' : '';
-
-      if (cellIdx < 0 || cellIdx >= row.symbols.length) {
-        html += `<div class="coq-cell blocked${hl}"></div>`;
-      } else {
-        const sym = row.symbols[cellIdx];
-        html += `<div class="coq-cell${hl}">
-          <span class="coq-sym">${sym}</span>
-          <input class="coq-in" type="text" maxlength="2"
-            data-sym="${sym}" data-row="${ri}" data-col="${col}"
-            autocomplete="off" spellcheck="false"
-            oninput="cryptoInput(this)"
-            onkeydown="cryptoKeyDown(event, this)">
-        </div>`;
-      }
+    for (let col = 0; col < word_size; col++) {
+      const sym = row.symbols[col];
+      const hl  = col === row.highlight_idx ? ' hl-col' : '';
+      html += `<div class="coq-cell${hl}">
+        <span class="coq-sym">${sym}</span>
+        <input class="coq-in" type="text" maxlength="2"
+          data-sym="${sym}" data-row="${ri}" data-col="${col}"
+          autocomplete="off" spellcheck="false"
+          oninput="cryptoInput(this)"
+          onkeydown="cryptoKeyDown(event, this)">
+      </div>`;
     }
     html += `</div></div>`;
   });

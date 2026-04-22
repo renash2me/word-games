@@ -33,8 +33,8 @@ def api_crossword():
 
 
 @app.get("/api/cryptogram")
-def api_cryptogram():
-    result = generate_cryptogram()
+def api_cryptogram(size: int = 7):
+    result = generate_cryptogram(word_size=size)
     return JSONResponse(result)
 
 
