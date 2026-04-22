@@ -237,6 +237,15 @@ header {
 .btn-primary:hover { background: #b8932e; }
 .btn-secondary { background: transparent; color: var(--text); border-color: var(--border); }
 .btn-secondary:hover { border-color: var(--gold-dim); color: var(--gold); }
+.btn-secondary.active-toggle {
+  border-color: var(--gold-dim);
+  color: var(--gold);
+}
+.btn-secondary.active-toggle.off {
+  border-color: var(--border);
+  color: var(--muted);
+  text-decoration: line-through;
+}
 
 .msg-bar {
   display: none;
@@ -557,6 +566,7 @@ header {
           <button class="diff-btn"        data-size="10" onclick="setDifficulty(10)">Expert</button>
         </div>
         <button class="btn btn-secondary" onclick="loadCryptogram()">Novo Jogo</button>
+        <button id="btnAutoFill" class="btn btn-secondary active-toggle" onclick="toggleAutoFill()">⚡ Auto</button>
         <button class="btn btn-secondary" onclick="hintCryptogram()">💡 Dica</button>
         <button class="btn btn-primary"   onclick="checkCryptogram()">Verificar</button>
       </div>
@@ -577,7 +587,8 @@ let cwSel      = null;   // {r, c}
 let cwDir      = 'H';
 
 let cryptoData = null;
-let cryptoDifficulty = 7;   // 7 | 8 | 9 | 10
+let cryptoDifficulty = 7;
+let cryptoAutoFill   = true;
 
 /* ═══════════════════════════════════════════
    NAVIGATION
@@ -890,6 +901,13 @@ function setDifficulty(size) {
   loadCryptogram();
 }
 
+function toggleAutoFill() {
+  cryptoAutoFill = !cryptoAutoFill;
+  const btn = document.getElementById('btnAutoFill');
+  btn.classList.toggle('off', !cryptoAutoFill);
+  btn.title = cryptoAutoFill ? 'Auto-preenchimento ligado' : 'Auto-preenchimento desligado';
+}
+
 async function loadCryptogram() {
   cryptoData = null;
   document.getElementById('cryptoContent').innerHTML = '<div class="loading">Gerando o criptograma…</div>';
@@ -946,12 +964,19 @@ function cryptoInput(inp) {
   const raw = inp.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z]/g,'');
   const ch  = raw ? raw[raw.length-1] : '';
 
-  document.querySelectorAll(`.coq-in[data-sym="${CSS.escape(sym)}"]`).forEach(i => {
-    if (!i.disabled) {
-      i.value = ch;
-      i.classList.remove('correct','incorrect');
-    }
-  });
+  if (cryptoAutoFill) {
+    // Propaga para todas as células com o mesmo símbolo
+    document.querySelectorAll(`.coq-in[data-sym="${CSS.escape(sym)}"]`).forEach(i => {
+      if (!i.disabled) {
+        i.value = ch;
+        i.classList.remove('correct','incorrect');
+      }
+    });
+  } else {
+    // Preenche só a célula atual
+    inp.value = ch;
+    inp.classList.remove('correct','incorrect');
+  }
 
   if (ch) {
     const all = [...document.querySelectorAll('.coq-in:not([disabled])')];
