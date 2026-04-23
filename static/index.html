@@ -304,6 +304,77 @@ header {
 .cw-cell.word-hl { background: #e8d9a8; }
 .cw-cell.cell-hl { background: #d4b84a; }
 
+/* Célula-dica (estilo Coquetel: contém dica da palavra que começa ao lado) */
+.cw-cell.clue-cell {
+  background: #3c3a32;
+  cursor: help;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+.cw-cell.clue-cell::before {
+  content: "?";
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--gold);
+  opacity: .75;
+}
+
+/* Tooltip mostrado em hover (desktop) ou toque (mobile) */
+.cw-cell.clue-cell .cw-tooltip {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1c1a15;
+  color: var(--text);
+  border: 1px solid var(--gold-dim);
+  border-left: 3px solid var(--gold);
+  padding: 8px 12px;
+  font-family: 'EB Garamond', serif;
+  font-size: 13.5px;
+  line-height: 1.45;
+  max-width: 320px;
+  white-space: normal;
+  width: max-content;
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .12s;
+  text-align: left;
+  box-shadow: 0 4px 14px rgba(0,0,0,.45);
+}
+.cw-cell.clue-cell:hover .cw-tooltip,
+.cw-cell.clue-cell.tip-open .cw-tooltip {
+  opacity: 1;
+}
+.cw-tooltip .cw-tip-line { display: block; }
+.cw-tooltip .cw-tip-dir {
+  color: var(--gold);
+  font-family: 'Courier Prime', monospace;
+  font-size: 11px;
+  margin-right: 6px;
+  font-weight: 700;
+}
+
+/* Célula revelada (letra fixa pré-preenchida, não editável) */
+.cw-cell.revealed {
+  background: #fff6dc;
+  border: 1px solid var(--gold-dim);
+}
+.cw-cell.revealed .cw-letter-fixed {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Courier Prime', monospace;
+  font-size: 20px;
+  font-weight: 700;
+  color: #5a4410;
+}
+
 .cw-num {
   position: absolute;
   top: 2px;
@@ -654,55 +725,92 @@ function buildClueOrder() {
 }
 
 function renderCrossword() {
-  const {grid, rows, cols, clues_across, clues_down, cell_numbers} = cwData;
+  const {grid, rows, cols, clue_cells, revealed} = cwData;
 
-  // Grid
+  // Index clue-cells para lookup O(1)
+  const clueCellMap = {};
+  for (const cc of (clue_cells || [])) {
+    clueCellMap[`${cc.row},${cc.col}`] = cc;
+  }
+
+  // Index células reveladas
+  const revealedMap = {};   // "r,c" -> letra
+  if (revealed) {
+    for (let i = 0; i < revealed.word.length; i++) {
+      const rr = revealed.row + (revealed.direction === 'V' ? i : 0);
+      const cc = revealed.col + (revealed.direction === 'H' ? i : 0);
+      revealedMap[`${rr},${cc}`] = revealed.word[i];
+    }
+  }
+
   let g = `<div class="cw-grid" style="grid-template-columns:repeat(${cols},var(--cell-sz))">`;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      const ch  = grid[r][c];
-      const num = cell_numbers[`${r},${c}`];
-      if (ch === '#') {
+      const ch = grid[r][c];
+      const key = `${r},${c}`;
+      const cc  = clueCellMap[key];
+
+      if (cc) {
+        // Célula-dica: carrega tooltip com H: ... e/ou V: ...
+        let tipInner = '';
+        if (cc.h) {
+          tipInner += `<span class="cw-tip-line"><span class="cw-tip-dir">H${cc.h.num}:</span>${escHTML(cc.h.clue)}</span>`;
+        }
+        if (cc.v) {
+          tipInner += `<span class="cw-tip-line"><span class="cw-tip-dir">V${cc.v.num}:</span>${escHTML(cc.v.clue)}</span>`;
+        }
+        g += `<div class="cw-cell clue-cell" id="cw-${r}-${c}" onclick="cwTipToggle(${r},${c})">
+                <div class="cw-tooltip">${tipInner}</div>
+              </div>`;
+      } else if (ch === '#') {
+        // Célula de padding (fora de qualquer palavra): mesmo tom do fundo, sem borda
         g += `<div class="cw-cell"></div>`;
+      } else if (revealedMap[key]) {
+        // Célula revelada: letra fixa, não editável
+        g += `<div class="cw-cell white revealed" id="cw-${r}-${c}">
+                <span class="cw-letter-fixed">${revealedMap[key]}</span>
+              </div>`;
       } else {
-        g += `<div class="cw-cell white" id="cw-${r}-${c}" onclick="cwCellClick(${r},${c})">`;
-        if (num) g += `<span class="cw-num">${num}</span>`;
-        g += `<input class="cw-input" id="cwi-${r}-${c}" type="text" maxlength="2"
-          data-r="${r}" data-c="${c}" autocomplete="off" spellcheck="false"
-          onkeydown="cwKeyDown(event,${r},${c})"
-          oninput="cwInput(event,${r},${c})"
-          onfocus="cwFocus(${r},${c})">`;
-        g += `</div>`;
+        // Célula normal editável
+        g += `<div class="cw-cell white" id="cw-${r}-${c}" onclick="cwCellClick(${r},${c})">
+                <input class="cw-input" id="cwi-${r}-${c}" type="text" maxlength="2"
+                  data-r="${r}" data-c="${c}" autocomplete="off" spellcheck="false"
+                  onkeydown="cwKeyDown(event,${r},${c})"
+                  oninput="cwInput(event,${r},${c})"
+                  onfocus="cwFocus(${r},${c})">
+              </div>`;
       }
     }
   }
   g += `</div>`;
 
-  // Clues
-  const mkClue = (cl, dir) =>
-    `<div class="clue-item" id="clue-${cl.num}-${dir}"
-       onclick="clueClick(${cl.num},'${dir}',${cl.row},${cl.col},${cl.len})">
-      <span class="clue-n">${cl.num}.</span>
-      <span class="clue-t">${cl.clue}</span>
-    </div>`;
-
-  let panel = `<div class="clues-panel">
-    <div class="clues-section">
-      <div class="clues-head">Horizontal</div>
-      ${clues_across.map(cl => mkClue(cl,'H')).join('')}
-    </div>
-    <div class="clues-section">
-      <div class="clues-head">Vertical</div>
-      ${clues_down.map(cl => mkClue(cl,'V')).join('')}
-    </div>
-  </div>`;
-
   document.getElementById('cwContent').innerHTML =
-    `<div class="cw-layout">
-       <div class="cw-grid-wrap">${g}</div>
-       ${panel}
-     </div>`;
+    `<div class="cw-grid-wrap">${g}</div>`;
 }
+
+/* Escape simples pra texto em tooltip */
+function escHTML(s) {
+  return String(s).replace(/[&<>"']/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[ch]));
+}
+
+/* Mobile: tocar na célula-dica abre/fecha o tooltip (hover não funciona em touch) */
+function cwTipToggle(r, c) {
+  const cell = document.getElementById(`cw-${r}-${c}`);
+  if (!cell) return;
+  // Fecha outros tooltips abertos
+  document.querySelectorAll('.cw-cell.clue-cell.tip-open').forEach(el => {
+    if (el !== cell) el.classList.remove('tip-open');
+  });
+  cell.classList.toggle('tip-open');
+}
+/* Fecha tooltip ao clicar fora */
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.cw-cell.clue-cell')) {
+    document.querySelectorAll('.cw-cell.clue-cell.tip-open').forEach(el => el.classList.remove('tip-open'));
+  }
+});
 
 /* ═══════════════════════════════════════════
    CROSSWORD — INTERACTION
@@ -736,8 +844,13 @@ function cwKeyDown(e, r, c) {
     e.preventDefault();
     const [dr, dc, dir] = arrows[e.key];
     cwDir = dir;
-    const inp = document.getElementById(`cwi-${r+dr}-${c+dc}`);
-    if (inp) { inp.focus(); cwSel = {r:r+dr, c:c+dc}; cwHighlight(); }
+    // Pula células sem input (reveladas, padding, células-dica)
+    let nr = r + dr, nc = c + dc;
+    while (nr >= 0 && nc >= 0 && nr < cwData.rows && nc < cwData.cols) {
+      const inp = document.getElementById(`cwi-${nr}-${nc}`);
+      if (inp) { inp.focus(); cwSel = {r:nr, c:nc}; cwHighlight(); return; }
+      nr += dr; nc += dc;
+    }
     return;
   }
 
@@ -777,22 +890,30 @@ function cwMoveNext(r, c) {
   const info = cwCellMap[`${r},${c}`];
   const cl   = info && info[cwDir];
   if (!cl) return;
-  const nr = r + (cwDir==='V' ? 1 : 0);
-  const nc = c + (cwDir==='H' ? 1 : 0);
-  const inRange = cwDir==='H' ? nc < cl.col+cl.len : nr < cl.row+cl.len;
-  if (inRange) { const i = document.getElementById(`cwi-${nr}-${nc}`); if(i){i.focus();cwSel={r:nr,c:nc};cwHighlight();} }
+  // Avança pulando células sem input (reveladas)
+  let nr = r, nc = c;
+  while (true) {
+    nr += (cwDir==='V' ? 1 : 0);
+    nc += (cwDir==='H' ? 1 : 0);
+    const inRange = cwDir==='H' ? nc < cl.col+cl.len : nr < cl.row+cl.len;
+    if (!inRange) return;
+    const i = document.getElementById(`cwi-${nr}-${nc}`);
+    if (i) { i.focus(); cwSel = {r:nr, c:nc}; cwHighlight(); return; }
+  }
 }
 
 function cwMovePrev(r, c) {
   const info = cwCellMap[`${r},${c}`];
   const cl   = info && info[cwDir];
   if (!cl) return;
-  const pr = r - (cwDir==='V' ? 1 : 0);
-  const pc = c - (cwDir==='H' ? 1 : 0);
-  const inRange = cwDir==='H' ? pc >= cl.col : pr >= cl.row;
-  if (inRange) {
+  let pr = r, pc = c;
+  while (true) {
+    pr -= (cwDir==='V' ? 1 : 0);
+    pc -= (cwDir==='H' ? 1 : 0);
+    const inRange = cwDir==='H' ? pc >= cl.col : pr >= cl.row;
+    if (!inRange) return;
     const i = document.getElementById(`cwi-${pr}-${pc}`);
-    if (i) { i.value=''; i.focus(); cwSel={r:pr,c:pc}; clearCellState(pr,pc); cwHighlight(); }
+    if (i) { i.value=''; i.focus(); cwSel={r:pr, c:pc}; clearCellState(pr,pc); cwHighlight(); return; }
   }
 }
 
@@ -808,14 +929,20 @@ function cwNextClue(step) {
 
 function clueClick(num, dir, row, col, len) {
   cwDir = dir;
+  // Procura primeira célula editável vazia da palavra
   for (let i = 0; i < len; i++) {
     const r = row + (dir==='V' ? i : 0);
     const c = col + (dir==='H' ? i : 0);
     const inp = document.getElementById(`cwi-${r}-${c}`);
     if (inp && !inp.value) { inp.focus(); cwSel={r,c}; cwHighlight(); return; }
   }
-  const inp = document.getElementById(`cwi-${row}-${col}`);
-  if (inp) { inp.focus(); cwSel={r:row,c:col}; cwHighlight(); }
+  // Se todas preenchidas/reveladas, foca na primeira editável (se houver)
+  for (let i = 0; i < len; i++) {
+    const r = row + (dir==='V' ? i : 0);
+    const c = col + (dir==='H' ? i : 0);
+    const inp = document.getElementById(`cwi-${r}-${c}`);
+    if (inp) { inp.focus(); cwSel={r,c}; cwHighlight(); return; }
+  }
 }
 
 function focusCell(r, c) {
@@ -828,7 +955,6 @@ function cwHighlight() {
   document.querySelectorAll('.cw-cell.white').forEach(el => {
     el.classList.remove('word-hl','cell-hl');
   });
-  document.querySelectorAll('.clue-item').forEach(el => el.classList.remove('active-clue'));
 
   if (!cwSel) return;
   const {r, c} = cwSel;
@@ -852,23 +978,32 @@ function cwHighlight() {
     selCell.classList.remove('word-hl');
     selCell.classList.add('cell-hl');
   }
-
-  // Highlight clue
-  const clueEl = document.getElementById(`clue-${cl.num}-${cwDir}`);
-  if (clueEl) {
-    clueEl.classList.add('active-clue');
-    clueEl.scrollIntoView({block:'nearest'});
-  }
 }
 
 function checkCrossword() {
   if (!cwData) return;
-  const {grid, rows, cols} = cwData;
-  let total = 0, correct = 0;
+  const {grid, rows, cols, clue_cells, revealed} = cwData;
 
+  // Index de células a pular
+  const clueCellSet = new Set();
+  for (const cc of (clue_cells || [])) clueCellSet.add(`${cc.row},${cc.col}`);
+  const revealedSet = new Set();
+  if (revealed) {
+    for (let i = 0; i < revealed.word.length; i++) {
+      const rr = revealed.row + (revealed.direction === 'V' ? i : 0);
+      const cc2 = revealed.col + (revealed.direction === 'H' ? i : 0);
+      revealedSet.add(`${rr},${cc2}`);
+    }
+  }
+
+  let total = 0, correct = 0;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      if (grid[r][c] === '#') continue;
+      const key = `${r},${c}`;
+      if (grid[r][c] === '#') continue;         // padding
+      if (clueCellSet.has(key)) continue;       // célula-dica
+      if (revealedSet.has(key)) { total++; correct++; continue; }  // revelada sempre ok
+
       total++;
       const cell = document.getElementById(`cw-${r}-${c}`);
       const inp  = document.getElementById(`cwi-${r}-${c}`);
@@ -882,7 +1017,6 @@ function checkCrossword() {
     }
   }
 
-  const msg = document.getElementById('cwMsg');
   if (correct === total && total > 0) {
     showMsg('cwMsg', `🎉 Parabéns! Você completou as palavras cruzadas!`, 'win');
   } else {

@@ -2,8 +2,16 @@
 
 Aplicação web com dois jogos de palavras em Português:
 
-- **Palavras Cruzadas** — grade gerada automaticamente com backtracking
-- **Criptograma** — provérbios com letras substituídas por símbolos Unicode
+- **Palavras Cruzadas** — formato Coquetel Diretas: grade totalmente preenchida,
+  dicas em células embutidas no grid (tooltip ao passar mouse / tocar),
+  uma palavra revelada como âncora.
+- **Criptograma** — provérbios com letras substituídas por símbolos Unicode.
+
+## Versão
+
+**v10** — Palavras Cruzadas migrada do formato americano (blocos pretos +
+lista lateral de dicas) para o formato Coquetel Diretas (células-dica
+com tooltip, palavra revelada).
 
 ---
 
