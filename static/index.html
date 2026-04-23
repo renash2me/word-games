@@ -276,12 +276,26 @@ header {
   gap: 24px;
 }
 
+#cwContent {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+  overflow: visible;
+  min-height: auto !important;
+  max-height: none !important;
+  height: auto !important;
+}
+
 .cw-grid-wrap {
   background: #444;
   padding: 2px;
   display: inline-block;
-  max-width: 100%;
-  overflow-x: auto;
+  overflow: visible !important;
+  min-height: auto !important;
+  max-height: none !important;
+  height: auto !important;
+  width: auto !important;
+  max-width: none !important;
 }
 
 .cw-grid {
@@ -289,6 +303,10 @@ header {
   gap: 1px;
   background: #555;
   user-select: none;
+  overflow: visible !important;
+  min-height: auto !important;
+  max-height: none !important;
+  height: auto !important;
 }
 
 .cw-cell {
