@@ -26,9 +26,10 @@ async def root():
 
 
 @app.get("/api/crossword")
-def api_crossword():
+def api_crossword(difficulty: int = 1):
     words = get_word_list()
-    result = generate_crossword(words, target=12)
+    difficulty = max(1, min(5, difficulty))
+    result = generate_crossword(words, difficulty=difficulty)
     return JSONResponse(result)
 
 

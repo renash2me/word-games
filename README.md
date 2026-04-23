@@ -2,16 +2,18 @@
 
 Aplicação web com dois jogos de palavras em Português:
 
-- **Palavras Cruzadas** — formato Coquetel Diretas: grade totalmente preenchida,
-  dicas em células embutidas no grid (tooltip ao passar mouse / tocar),
-  uma palavra revelada como âncora.
+- **Palavras Cruzadas Diretas** — formato Coquetel: grade preenchida com
+  palavras, dicas em células embutidas (tooltip), dificuldade ajustável
+  (8×10 até 11×16), uma palavra revelada como âncora.
 - **Criptograma** — provérbios com letras substituídas por símbolos Unicode.
 
 ## Versão
 
-**v10** — Palavras Cruzadas migrada do formato americano (blocos pretos +
-lista lateral de dicas) para o formato Coquetel Diretas (células-dica
-com tooltip, palavra revelada).
+**v11** — Palavras Cruzadas migradas pra formato Coquetel Diretas de verdade:
+- Solver CSP com forward-checking + MRV
+- Layout generator dedicado (grids 100% preenchidos)
+- Banco expandido de 1635 → 2310 palavras com dicas
+- Endpoint aceita `?difficulty=1..5`
 
 ---
 
@@ -28,7 +30,7 @@ com tooltip, palavra revelada).
 
 ## Deploy no Raspberry Pi / OMV
 
-Crie um arquivo `compose.yml` no Pi com o conteúdo abaixo  
+Crie um arquivo `compose.yml` no Pi com o conteúdo abaixo
 (substitua `SEU_USUARIO` pelo seu username do GitHub):
 
 ```yaml
@@ -36,61 +38,40 @@ services:
   word-games:
     image: ghcr.io/SEU_USUARIO/word-games:latest
     container_name: word-games
-    ports:
-      - "8080:8000"
     restart: unless-stopped
+    ports:
+      - "8000:8000"
 ```
+
+Depois:
 
 ```bash
-# Primeira vez
+docker compose pull
 docker compose up -d
-
-# Atualizar após novo push no GitHub
-docker compose pull && docker compose up -d
 ```
-
-Acesse em: `http://IP-DO-PI:8080`
-
----
 
 ## Desenvolvimento local
 
 ```bash
-git clone https://github.com/SEU_USUARIO/word-games.git
-cd word-games
 pip install -r requirements.txt
 uvicorn main:app --reload
-# Acesse: http://localhost:8000
+# http://localhost:8000
 ```
 
----
+## Arquitetura do crossword (v11)
 
-## CI/CD
+- `crossword.py` — orquestrador; chama layout_generator, solver, monta JSON
+- `layout_generator.py` — gera grid NxM com clue-cells posicionadas
+- `solver.py` — CSP backtracking + forward-checking + MRV
+- `grid.py`, `slot.py`, `heuristics.py`, `dictionary.py` — módulos de apoio
+- `words_pt.py` — banco de 2310 palavras com dicas estilo Coquetel
 
-A cada `git push` na branch `main`, o GitHub Actions:
+Dificuldades:
 
-1. Builda a imagem para `linux/amd64` e `linux/arm64`
-2. Publica em `ghcr.io/SEU_USUARIO/word-games:latest`
-
-O Pi só precisa rodar `docker compose pull` para pegar a versão mais nova.
-
----
-
-## Estrutura
-
-```
-word-games/
-├── .github/
-│   └── workflows/
-│       └── docker.yml   ← GitHub Actions (build + push GHCR)
-├── static/
-│   └── index.html       ← SPA completo
-├── main.py              ← FastAPI
-├── crossword.py         ← Gerador de palavras cruzadas
-├── cryptogram.py        ← Gerador de criptograma
-├── words_pt.py          ← Vocabulário PT (~90 palavras + dicas)
-├── requirements.txt
-├── Dockerfile
-├── docker-compose.yml   ← Para build local/dev
-└── compose.pi.yml       ← Para o Pi (só pull da imagem)
-```
+| Nível | Grid (cols × linhas) |
+|-------|----------------------|
+| 1     | 8 × 10               |
+| 2     | 9 × 11               |
+| 3     | 10 × 13              |
+| 4     | 11 × 14              |
+| 5     | 11 × 16              |
