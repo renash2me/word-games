@@ -471,72 +471,131 @@ header {
 .clue-item.active-clue .clue-t { color: var(--text); }
 
 /* ── CRYPTOGRAM — estilo Coquetel ── */
-.coq-theme {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-left: 4px solid var(--gold);
-  padding: 20px 28px;
-  margin-bottom: 18px;
-  display: flex;
-  align-items: baseline;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-.coq-theme-label {
-  font-size: 10px;
-  letter-spacing: .3em;
-  text-transform: uppercase;
-  color: var(--gold);
-  font-weight: 700;
-}
-.coq-theme-text {
-  font-family: 'Playfair Display', serif;
-  font-size: 20px;
-  font-style: italic;
-  color: var(--text);
-  line-height: 1.3;
-}
+/* ── CRYPTOGRAM (Coquetel-style) ── */
 
 .coq-table {
   background: var(--surface);
   border: 1px solid var(--border);
-  overflow-x: auto;
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 110px; /* espaço pra cluebar fixa */
 }
 
 .coq-row {
   display: grid;
-  grid-template-columns: minmax(220px, 1.3fr) auto;
-  gap: 18px;
-  padding: 6px 18px 6px 20px;
-  border-bottom: 1px solid var(--border);
-  align-items: center;
+  gap: 0;
+  padding: 4px 0;
+  border-radius: 4px;
+  transition: background 0.15s;
 }
-.coq-row:last-child { border-bottom: none; }
+
+.coq-row.active {
+  background: rgba(120, 170, 255, 0.18);
+}
 
 .coq-clue {
-  font-size: 14.5px;
-  line-height: 1.4;
-  color: var(--text);
-  padding: 8px 0;
+  /* Não usado mais inline, mas mantido pra compat */
+  display: none;
 }
 
 .coq-cells {
   display: grid;
   gap: 0;
-  padding: 6px 0;
 }
 
 .coq-cell {
-  width: 38px;
-  height: 44px;
+  width: 40px;
+  height: 46px;
   background: var(--paper);
   border: 1px solid #999;
   position: relative;
 }
+
 .coq-cell.hl-col {
   background: #efe0b0;
-  border: 3px solid var(--gold);
+  border: 2px solid var(--gold);
   z-index: 1;
+}
+
+.coq-cell.cell-active {
+  background: #4a9eff !important;
+  border: 2px solid #2a7adb;
+  z-index: 2;
+}
+.coq-cell.cell-active .coq-sym { color: #fff; }
+.coq-cell.cell-active .coq-in  { color: #fff; }
+
+.coq-sym {
+  position: absolute;
+  top: 2px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 13px;
+  color: #666;
+  line-height: 1;
+  pointer-events: none;
+  z-index: 2;
+  font-family: monospace;
+}
+
+.coq-cluebar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to top, rgba(20,20,28,0.98), rgba(30,30,40,0.96));
+  border-top: 1px solid var(--gold-dim);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 100;
+  backdrop-filter: blur(8px);
+}
+.coq-cluebar.hidden {
+  display: none;
+}
+.coq-cluebar-nav {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--gold-dim);
+  background: transparent;
+  color: var(--gold);
+  font-size: 18px;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.coq-cluebar-nav:hover { background: rgba(201,168,76,0.1); }
+.coq-cluebar-nav:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.coq-cluebar-text {
+  flex: 1;
+  text-align: center;
+  font-family: 'Playfair Display', serif;
+  font-size: 17px;
+  font-style: italic;
+  color: var(--text);
+  line-height: 1.3;
+}
+.coq-cluebar-text.is-secret {
+  color: var(--gold);
+}
+.coq-cluebar-counter {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 38px;
+  text-align: right;
+  flex-shrink: 0;
 }
 
 .coq-sym {
@@ -679,6 +738,8 @@ let cwDir      = 'H';
 let cryptoData = null;
 let cryptoDifficulty = 7;
 let cryptoAutoFill   = true;
+let cryptoActiveWord = 0;
+let cryptoSecretWordIdx = -1;
 
 /* ═══════════════════════════════════════════
    NAVIGATION
@@ -1080,28 +1141,28 @@ function symKey(sym) {
 }
 
 function renderCryptogram() {
-  const {theme, word_size, rows} = cryptoData;
+  const {word_size, rows, secret_clue, secret_symbols, secret, highlight_col} = cryptoData;
 
-  let html = `
-    <div class="coq-theme">
-      <div class="coq-theme-label">Tema</div>
-      <div class="coq-theme-text">${theme}</div>
-    </div>
-    <div class="coq-table">`;
+  // N "palavras" navegáveis: rows.length horizontais + 1 vertical (palavra-chave)
+  // Convenção: índices 0..rows.length-1 = horizontais; rows.length = palavra-chave
+  cryptoActiveWord = 0;
+  cryptoSecretWordIdx = rows.length; // índice da palavra-chave
+
+  let html = `<div class="coq-table">`;
 
   rows.forEach((row, ri) => {
-    html += `<div class="coq-row">
-      <div class="coq-clue">${row.clue}</div>
-      <div class="coq-cells" style="grid-template-columns: repeat(${word_size}, 38px);">`;
+    html += `<div class="coq-row" id="coqrow-${ri}" data-word-idx="${ri}">
+      <div class="coq-cells" style="grid-template-columns: repeat(${word_size}, 40px);">`;
 
     for (let col = 0; col < word_size; col++) {
       const sym = row.symbols[col];
       const hl  = col === row.highlight_idx ? ' hl-col' : '';
-      html += `<div class="coq-cell${hl}">
+      html += `<div class="coq-cell${hl}" data-row="${ri}" data-col="${col}">
         <span class="coq-sym">${sym}</span>
         <input class="coq-in" type="text" maxlength="2"
           data-sym="${sym}" data-row="${ri}" data-col="${col}"
           autocomplete="off" spellcheck="false"
+          onfocus="cryptoCellFocus(${ri},${col})"
           oninput="cryptoInput(this)"
           onkeydown="cryptoKeyDown(event, this)">
       </div>`;
@@ -1110,20 +1171,130 @@ function renderCryptogram() {
   });
 
   html += `</div>`;
+
+  // Barra de dica fixa no rodapé
+  html += `
+    <div id="coqCluebar" class="coq-cluebar">
+      <button class="coq-cluebar-nav" onclick="cryptoNavWord(-1)" id="coqNavPrev">‹</button>
+      <div class="coq-cluebar-text" id="coqCluebarText"></div>
+      <span class="coq-cluebar-counter" id="coqCluebarCounter"></span>
+      <button class="coq-cluebar-nav" onclick="cryptoNavWord(1)" id="coqNavNext">›</button>
+    </div>`;
+
   document.getElementById('cryptoContent').innerHTML = html;
+
+  // Ativa primeira palavra
+  cryptoSetActiveWord(0);
+}
+
+/* ── Seleção/navegação de palavras ── */
+
+function cryptoSetActiveWord(idx) {
+  if (!cryptoData) return;
+  const total = cryptoData.rows.length + 1;  // +1 da palavra-chave
+  if (idx < 0) idx = total - 1;
+  if (idx >= total) idx = 0;
+  cryptoActiveWord = idx;
+
+  // Limpa highlight anterior
+  document.querySelectorAll('.coq-row.active').forEach(r => r.classList.remove('active'));
+  document.querySelectorAll('.coq-cell.cell-active').forEach(c => c.classList.remove('cell-active'));
+
+  const isSecret = (idx === cryptoSecretWordIdx);
+
+  if (isSecret) {
+    // Palavra-chave vertical: destaca a coluna inteira (highlight_col em todas as rows)
+    const col = cryptoData.highlight_col;
+    cryptoData.rows.forEach((_, ri) => {
+      const cell = document.querySelector(`.coq-cell[data-row="${ri}"][data-col="${col}"]`);
+      if (ri === 0) cell?.classList.add('cell-active');
+    });
+    // Texto da barra
+    document.getElementById('coqCluebarText').textContent = cryptoData.secret_clue;
+    document.getElementById('coqCluebarText').classList.add('is-secret');
+    // Foca primeira célula da palavra-chave
+    const inp = document.querySelector(`.coq-in[data-row="0"][data-col="${col}"]`);
+    if (inp && !inp.disabled) inp.focus();
+  } else {
+    // Palavra horizontal
+    const row = cryptoData.rows[idx];
+    const rowEl = document.getElementById(`coqrow-${idx}`);
+    if (rowEl) rowEl.classList.add('active');
+    // Primeira célula em azul forte
+    const firstCell = document.querySelector(`.coq-cell[data-row="${idx}"][data-col="0"]`);
+    if (firstCell) firstCell.classList.add('cell-active');
+    // Texto da barra
+    document.getElementById('coqCluebarText').textContent = row.clue;
+    document.getElementById('coqCluebarText').classList.remove('is-secret');
+    // Foca primeira célula vazia da linha (ou primeira)
+    const inputs = [...document.querySelectorAll(`.coq-in[data-row="${idx}"]`)];
+    const target = inputs.find(i => !i.disabled && !i.value) || inputs.find(i => !i.disabled);
+    if (target) target.focus();
+  }
+
+  // Contador
+  document.getElementById('coqCluebarCounter').textContent = `${idx + 1}/${total}`;
+}
+
+function cryptoNavWord(delta) {
+  cryptoSetActiveWord(cryptoActiveWord + delta);
+}
+
+function cryptoCellFocus(row, col) {
+  // Quando usuário clica em uma célula, descobre qual "palavra" é
+  // - Se é a coluna destacada e ele clicou nela, podemos preferir a vertical?
+  //   Decisão: clicar em qualquer célula → ativa a horizontal daquela linha.
+  //   Pra ativar a vertical, usuário usa as setas < > da barra.
+  // EXCEÇÃO: se já está na vertical e clicou em outra célula da coluna destacada,
+  // mantém na vertical.
+  if (cryptoActiveWord === cryptoSecretWordIdx && col === cryptoData.highlight_col) {
+    return;  // mantém vertical
+  }
+  if (cryptoActiveWord !== row) {
+    cryptoSetActiveWord(row);
+  }
+}
+
+/* Marca uma palavra como resolvida e auto-pula pra próxima não-resolvida */
+function cryptoFindNextUnsolved(fromIdx) {
+  if (!cryptoData) return null;
+  const total = cryptoData.rows.length + 1;
+  for (let i = 1; i <= total; i++) {
+    const candidate = (fromIdx + i) % total;
+    if (!cryptoIsWordSolved(candidate)) return candidate;
+  }
+  return null; // todas resolvidas
+}
+
+function cryptoIsWordSolved(idx) {
+  if (!cryptoData) return true;
+  let inputs;
+  if (idx === cryptoSecretWordIdx) {
+    const col = cryptoData.highlight_col;
+    inputs = [...document.querySelectorAll(`.coq-in[data-col="${col}"]`)];
+  } else {
+    inputs = [...document.querySelectorAll(`.coq-in[data-row="${idx}"]`)];
+  }
+  if (inputs.length === 0) return false;
+  const word = (idx === cryptoSecretWordIdx)
+    ? cryptoData.secret
+    : (() => {
+        // Reconstrói a palavra horizontal pelos símbolos+mapping
+        const row = cryptoData.rows[idx];
+        return row.symbols.map(s => cryptoData.mapping[s]).join('');
+      })();
+  return inputs.every((inp, i) => (inp.value || '').toUpperCase() === word[i]);
 }
 
 function cryptoInput(inp) {
   const sym = inp.dataset.sym;
-  // Pega só o último caractere válido (letra com ou sem acento)
   const rawInput = inp.value.replace(/[^A-Za-zÀ-ÿ]/g, '');
   const displayed = rawInput ? rawInput[rawInput.length-1].toUpperCase() : '';
-  inp.value = displayed;  // preserva acentuação para exibição
+  inp.value = displayed;
 
   inp.classList.remove('correct','incorrect');
 
   if (cryptoAutoFill && displayed) {
-    // Propaga o MESMO caractere visual para todas as células do mesmo símbolo
     document.querySelectorAll(`.coq-in[data-sym="${CSS.escape(sym)}"]`).forEach(i => {
       if (!i.disabled && i !== inp) {
         i.value = displayed;
@@ -1131,7 +1302,6 @@ function cryptoInput(inp) {
       }
     });
   } else if (cryptoAutoFill && !displayed) {
-    // Limpando: limpa os irmãos também
     document.querySelectorAll(`.coq-in[data-sym="${CSS.escape(sym)}"]`).forEach(i => {
       if (!i.disabled && i !== inp) {
         i.value = '';
@@ -1140,19 +1310,60 @@ function cryptoInput(inp) {
     });
   }
 
-  if (displayed) {
-    const all = [...document.querySelectorAll('.coq-in:not([disabled])')];
-    const idx = all.indexOf(inp);
-    if (idx < all.length - 1) all[idx+1].focus();
+  if (!displayed) return;
+
+  // Move pro próximo input DENTRO da palavra ativa
+  const cellsInActive = cryptoCellsInActiveWord();
+  const idx = cellsInActive.indexOf(inp);
+  if (idx >= 0 && idx < cellsInActive.length - 1) {
+    cellsInActive[idx + 1].focus();
+    return;
   }
+
+  // Última célula da palavra preenchida → checa se a palavra está completa
+  // e pula pra próxima não-resolvida
+  if (cryptoIsWordSolvedLocal(cryptoActiveWord)) {
+    const next = cryptoFindNextUnsolved(cryptoActiveWord);
+    if (next !== null && next !== cryptoActiveWord) {
+      cryptoSetActiveWord(next);
+    }
+  }
+}
+
+function cryptoCellsInActiveWord() {
+  if (!cryptoData) return [];
+  if (cryptoActiveWord === cryptoSecretWordIdx) {
+    const col = cryptoData.highlight_col;
+    return [...document.querySelectorAll(`.coq-in[data-col="${col}"]`)]
+           .filter(i => !i.disabled);
+  }
+  return [...document.querySelectorAll(`.coq-in[data-row="${cryptoActiveWord}"]`)]
+         .filter(i => !i.disabled);
+}
+
+/* Versão "local" que só checa se todas as células estão preenchidas (não valida acerto) */
+function cryptoIsWordSolvedLocal(idx) {
+  if (!cryptoData) return false;
+  let inputs;
+  if (idx === cryptoSecretWordIdx) {
+    const col = cryptoData.highlight_col;
+    inputs = [...document.querySelectorAll(`.coq-in[data-col="${col}"]`)];
+  } else {
+    inputs = [...document.querySelectorAll(`.coq-in[data-row="${idx}"]`)];
+  }
+  return inputs.length > 0 && inputs.every(i => (i.value || '').trim() !== '');
 }
 
 function cryptoKeyDown(e, inp) {
   if (e.key === 'Backspace' && !inp.value) {
-    const all = [...document.querySelectorAll('.coq-in:not([disabled])')];
-    const idx = all.indexOf(inp);
-    if (idx > 0) all[idx-1].focus();
+    const cells = cryptoCellsInActiveWord();
+    const idx = cells.indexOf(inp);
+    if (idx > 0) cells[idx - 1].focus();
     e.preventDefault();
+  } else if (e.key === 'Tab') {
+    // Tab/Shift+Tab navega entre palavras
+    e.preventDefault();
+    cryptoNavWord(e.shiftKey ? -1 : 1);
   }
 }
 

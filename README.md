@@ -9,7 +9,7 @@ Aplicação web com dois jogos de palavras em Português:
 
 ## Versão
 
-**v11** — Palavras Cruzadas migradas pra formato Coquetel Diretas de verdade:
+**v11.1** — Dicas alternativas: as 250 palavras mais frequentes ganharam 2 dicas adicionais cada, evitando repetição entre jogos. Estrutura `{word, clues: [...]}` com fallback retrocompatível.
 - Solver CSP com forward-checking + MRV
 - Layout generator dedicado (grids 100% preenchidos)
 - Banco expandido de 1635 → 2310 palavras com dicas

@@ -23,6 +23,7 @@ from dictionary import Dictionary
 from grid import extract_slots
 from layout_generator import generate_layout
 from solver import Solver
+from words_pt import pick_clue
 
 
 DIFFICULTY_DIMS = {
@@ -35,17 +36,23 @@ DIFFICULTY_DIMS = {
 
 
 def _build_dictionary(word_data, min_len, max_len):
-    clues_by_word = {}
+    """Monta Dictionary e índice word->entry. Filtra por tamanho.
+
+    Guarda a entry inteira no índice (não só uma dica fixa) pra
+    permitir sortear dicas diferentes a cada chamada de
+    generate_crossword.
+    """
+    entries_by_word = {}
     words = []
     for entry in word_data:
         w = entry['word'].upper()
         if not (min_len <= len(w) <= max_len):
             continue
-        if w in clues_by_word:
+        if w in entries_by_word:
             continue
-        clues_by_word[w] = entry['clue']
+        entries_by_word[w] = entry
         words.append(w)
-    return Dictionary(words), clues_by_word
+    return Dictionary(words), entries_by_word
 
 
 def _number_slots(solved_slots):
@@ -61,7 +68,7 @@ def _direction(slot):
     return 'H' if r0 == r1 else 'V'
 
 
-def _build_clue_cells(grid, solved_slots, clues_by_word, cell_numbers):
+def _build_clue_cells(grid, solved_slots, entries_by_word, cell_numbers):
     rows = len(grid)
     cols = len(grid[0])
     clue_cells = {}
@@ -80,14 +87,14 @@ def _build_clue_cells(grid, solved_slots, clues_by_word, cell_numbers):
             side = 'h' if direction == 'H' else 'v'
             clue_cells[key][side] = {
                 'num': cell_numbers.get((r, c)),
-                'clue': clues_by_word.get(s.assigned, ''),
+                'clue': pick_clue(entries_by_word[s.assigned]),
                 'len': s.length,
             }
 
     return list(clue_cells.values())
 
 
-def _choose_revealed(solved_slots, clues_by_word, cell_numbers):
+def _choose_revealed(solved_slots, entries_by_word, cell_numbers):
     scored = []
     for s in solved_slots:
         num = cell_numbers.get(s.positions[0], 0)
@@ -102,7 +109,7 @@ def _choose_revealed(solved_slots, clues_by_word, cell_numbers):
         'row': r,
         'col': c,
         'word': best.assigned,
-        'clue': clues_by_word.get(best.assigned, ''),
+        'clue': pick_clue(entries_by_word[best.assigned]),
     }
 
 
@@ -112,7 +119,7 @@ def generate_crossword(word_data, difficulty=1, max_attempts=8,
     rows, cols = DIFFICULTY_DIMS.get(difficulty, DIFFICULTY_DIMS[1])
     min_len = 3
     max_len = min(max(rows, cols), 10)
-    dictionary, clues_by_word = _build_dictionary(word_data, min_len, max_len)
+    dictionary, entries_by_word = _build_dictionary(word_data, min_len, max_len)
 
     for attempt in range(max_attempts):
         grid_layout = generate_layout(rows=rows, cols=cols,
@@ -145,8 +152,8 @@ def generate_crossword(word_data, difficulty=1, max_attempts=8,
             key=lambda s: cell_numbers[s.positions[0]]
         )
 
-        clue_cells = _build_clue_cells(final_grid, result, clues_by_word, cell_numbers)
-        revealed = _choose_revealed(result, clues_by_word, cell_numbers)
+        clue_cells = _build_clue_cells(final_grid, result, entries_by_word, cell_numbers)
+        revealed = _choose_revealed(result, entries_by_word, cell_numbers)
 
         return {
             'grid': final_grid,
@@ -155,7 +162,7 @@ def generate_crossword(word_data, difficulty=1, max_attempts=8,
             'clues_across': [
                 {
                     'num': cell_numbers[s.positions[0]],
-                    'clue': clues_by_word.get(s.assigned, ''),
+                    'clue': pick_clue(entries_by_word[s.assigned]),
                     'row': s.positions[0][0],
                     'col': s.positions[0][1],
                     'len': s.length,
@@ -165,7 +172,7 @@ def generate_crossword(word_data, difficulty=1, max_attempts=8,
             'clues_down': [
                 {
                     'num': cell_numbers[s.positions[0]],
-                    'clue': clues_by_word.get(s.assigned, ''),
+                    'clue': pick_clue(entries_by_word[s.assigned]),
                     'row': s.positions[0][0],
                     'col': s.positions[0][1],
                     'len': s.length,
