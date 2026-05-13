@@ -1375,30 +1375,34 @@ function hintCryptogram() {
 
 function checkCryptogram() {
   if (!cryptoData) return;
-  const {mapping, secret, symbols_used} = cryptoData;
+  const {mapping, secret} = cryptoData;
   let total = 0, correct = 0;
 
   document.querySelectorAll('.coq-in').forEach(i => i.classList.remove('correct','incorrect'));
 
-  for (const sym of symbols_used) {
+  // Valida CADA célula individualmente: o valor digitado precisa
+  // bater com a letra que o símbolo daquela célula representa.
+  // (Sem auto-fill, células do mesmo símbolo podem ter valores diferentes
+  // e cada uma deve ser validada por si só.)
+  document.querySelectorAll('.coq-in').forEach(inp => {
+    if (inp.disabled) return;
+    const sym = inp.dataset.sym;
     const expected = mapping[sym];
-    if (!expected) continue;
-    const all = [...document.querySelectorAll(`.coq-in[data-sym="${CSS.escape(sym)}"]`)];
-    if (!all.length) continue;
+    if (!expected) return;
     total++;
-    const val = stripAccents(all[0].value);
-    const ok  = val === expected;
-    if (ok) correct++;
-    all.forEach(inp => {
-      if (ok) inp.classList.add('correct');
-      else if (inp.value) inp.classList.add('incorrect');
-    });
-  }
+    const val = stripAccents(inp.value);
+    if (val === expected) {
+      inp.classList.add('correct');
+      correct++;
+    } else if (inp.value) {
+      inp.classList.add('incorrect');
+    }
+  });
 
   if (correct === total && total > 0) {
-    showMsg('cryptoMsg', `🎉 Palavra secreta: ${secret}!`, 'win');
+    showMsg('cryptoMsg', `🎉 Palavra-chave: ${secret}!`, 'win');
   } else {
-    showMsg('cryptoMsg', `${correct} de ${total} símbolos corretos — continue!`, 'prog');
+    showMsg('cryptoMsg', `${correct} de ${total} células corretas — continue!`, 'prog');
     setTimeout(() => hideMsg('cryptoMsg'), 3500);
   }
 }
